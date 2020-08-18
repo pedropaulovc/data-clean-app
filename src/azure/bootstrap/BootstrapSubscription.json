@@ -21,7 +21,8 @@
     "storageName": "[concat('st', parameters('projectName'), 'deploy', take(uniqueString(subscription().id, parameters('projectName')), 4))]",
     "managedIdentityName": "[concat('msi-', parameters('projectName'), '-deploy')]",
     "bootstrapRoleAssignmentId": "[guid(concat(subscription().id, 'contributor'))]",
-    "contributorRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+    "contributorRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+    "managedIdentityId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', variables('resourceGroupName'), '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', variables('managedIdentityName'))]"
   },
   "resources": [
     {
@@ -34,7 +35,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "storageDeployment",
+      "name": "deployment-assets-except-role-assignment",
       "resourceGroup": "[variables('resourceGroupName')]",
       "dependsOn": [
         "[resourceId('Microsoft.Resources/resourceGroups/', variables('resourceGroupName'))]"
@@ -85,23 +86,23 @@
               "apiVersion": "2018-11-30",
               "location": "[parameters('location')]"
             }
-            ,
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2017-09-01",
-              "name": "[variables('bootstrapRoleAssignmentId')]",
-              "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
-              ],
-              "properties": {
-                "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
-                "principalId": "[reference(variables('resourceGroupName'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName')), '2018-11-30').principalId]",
-                "principalType": "ServicePrincipal"
-              }
-            }
           ],
           "outputs": {}
         }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2017-09-01",
+      "name": "[variables('bootstrapRoleAssignmentId')]",
+      "dependsOn": [
+        "deployment-assets-except-role-assignment"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
+        "principalId": "[reference(variables('managedIdentityId'), '2018-11-30').principalId]",
+        "principalType": "ServicePrincipal",
+        "scope": "[subscription().id]"
       }
     }
   ],
