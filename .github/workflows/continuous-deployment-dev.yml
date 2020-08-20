@@ -7,7 +7,8 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-
+    - uses: actions/checkout@v2
+    
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
@@ -16,6 +17,5 @@ jobs:
     - run: ls -la .
     - run: ls -la ..
     - run: ls -la ../..
-    - run: ls -la data-clean-app
     - run: pwsh -File data-clean-app/src/azure/continuous-deployment/New-Deployment.ps1 -environment dev
         
