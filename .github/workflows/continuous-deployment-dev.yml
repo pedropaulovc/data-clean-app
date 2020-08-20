@@ -12,5 +12,7 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
 
-    - run: |
-        az deployment group create --resource-group rg-dataclean-deploy-dev --template-file src/azure/continuous-deployment/DataCleanContinuousDeployment.json --parameters src/azure/continuous-deployment/DataCleanContinuousDeployment.parameters.json
+    - run: pwd
+    - run: ls
+    - run: pwsh -File ./src/azure/continuous-deployment/New-Deployment.ps1 -environment dev
+        
