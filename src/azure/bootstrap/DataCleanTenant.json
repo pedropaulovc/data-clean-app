@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/tenantDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "maxLength": 11,
+      "metadata": {
+        "description": "The name of the project"
+      }
+    }
+  },
+  "functions": [],
+  "variables": {
+    "managementGroupName": "[concat('mg-', parameters('projectName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Management/managementGroups",
+      "apiVersion": "2019-11-01",
+      "name": "[variables('managementGroupName')]",
+      "properties": {
+      }
+    }
+  ],
+  "outputs": {}
+}

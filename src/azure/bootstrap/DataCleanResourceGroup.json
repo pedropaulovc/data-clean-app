@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "maxLength": 11,
+      "metadata": {
+        "description": "The name of the project"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "maxLength": 3,
+      "metadata": {
+        "description": "The environment type (dev, uat, ppe, prd)"
+      },
+      "allowedValues": [
+        "dev",
+        "uat",
+        "ppe",
+        "prd"
+      ]
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "The region where to deploy assets"
+      }
+    }
+  },
+  "functions": [],
+  "variables": {
+    "storageName": "[concat('st', parameters('projectName'), 'deploy', parameters('environment'), take(uniqueString(subscription().id, parameters('projectName')), 2))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2019-06-01",
+      "name": "[variables('storageName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_RAGZRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "ipRules": []
+        }
+      }
+    },
+    {
+      "name": "[concat(variables('storageName'), '/default')]",
+      "type": "microsoft.storage/storageaccounts/blobServices",
+      "apiVersion": "2019-06-01",
+      "properties": {
+        "isVersioningEnabled": true
+      },
+      "dependsOn": [
+        "[concat('microsoft.storage/storageaccounts/', variables('storageName'))]"
+      ]
+    }
+  ],
+  "outputs": {}
+}

@@ -59,14 +59,8 @@
           "scope": "inner"
         },
         "parameters": {
-          "projectName": {
-            "value": "[parameters('projectName')]"
-          },
           "location": {
             "value": "[parameters('location')]"
-          },
-          "environment": {
-              "value": "[parameters('environment')]"
           },
           "managedIdentityName": {
             "value": "[variables('managedIdentityName')]"
@@ -76,60 +70,20 @@
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "1.0.0.0",
           "parameters": {
-            "projectName": {
-              "type": "string"
-            },
             "location": {
               "type": "string"
             },
             "managedIdentityName": {
               "type": "string"
-            },
-            "environment": {
-              "type": "string"
             }
           },
-          "variables": {
-            "storageName": "[concat('st', parameters('projectName'), 'deploy', parameters('environment'), take(uniqueString(subscription().id, parameters('projectName')), 2))]"
-          },
+          "variables": {},
           "resources": [
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "name": "[parameters('managedIdentityName')]",
               "apiVersion": "2018-11-30",
               "location": "[parameters('location')]"
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts",
-              "apiVersion": "2019-06-01",
-              "name": "[variables('storageName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "Standard_RAGZRS"
-              },
-              "kind": "StorageV2",
-              "properties": {
-                "accessTier": "Hot",
-                "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true,
-                "allowBlobPublicAccess": false,
-                "networkAcls": {
-                  "bypass": "AzureServices",
-                  "defaultAction": "Allow",
-                  "ipRules": []
-                }
-              }
-            },
-            {
-              "name": "[concat(variables('storageName'), '/default')]",
-              "type": "microsoft.storage/storageaccounts/blobServices",
-              "apiVersion": "2019-06-01",
-              "properties": {
-                "isVersioningEnabled": true
-              },
-              "dependsOn": [
-                "[concat('microsoft.storage/storageaccounts/', variables('storageName'))]"
-              ]
             }
           ],
           "outputs": {
