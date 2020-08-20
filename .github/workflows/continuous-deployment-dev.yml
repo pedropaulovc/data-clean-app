@@ -13,6 +13,7 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
 
     - run: pwd
-    - run: ls ..
+    - run: ls -la ..
+    - run: ls -la ../..
     - run: pwsh -File ./src/azure/continuous-deployment/New-Deployment.ps1 -environment dev
         
