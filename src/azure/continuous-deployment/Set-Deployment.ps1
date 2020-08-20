@@ -8,7 +8,7 @@ param (
 
 $templateName = "DataCleanContinuousDeployment";
 $resourceGroupName = $deploymentResourceGroupPrefix + '-' + $environment;
-$deploymentName = $templateName + '-' + $environment;
+$deploymentName = $templateName + '-' + $environment + "-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmm');
 $templateFile = Join-Path $PSScriptRoot "$templateName.json";
 $templateParameters = Join-Path $PSScriptRoot "$templateName.parameters.json";
 
