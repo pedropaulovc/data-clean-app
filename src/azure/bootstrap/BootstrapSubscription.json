@@ -1,0 +1,165 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "maxLength": 11,
+      "metadata": {
+        "description": "The name of the project"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "maxLength": 3,
+      "metadata": {
+        "description": "The environment type (dev, uat, ppe, prd)"
+      },
+      "allowedValues": [
+        "dev",
+        "uat",
+        "ppe",
+        "prd"
+      ]
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "The region where to deploy assets"
+      }
+    }
+  },
+  "variables": {
+    "assetsDeploymentName": "deployment-assets-except-role-assignment",
+    "resourceGroupName": "[concat('rg-', parameters('projectName'), '-deploy-', parameters('environment'))]",
+    "managedIdentityName": "[concat('msi-', parameters('projectName'), '-deploy-', parameters('environment'))]",
+    "contributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+    "managedIdentityId": "[concat(subscription().id, '/resourceGroups/', variables('resourceGroupName'), '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', variables('managedIdentityName'))]",
+    "bootstrapRoleAssignmentId": "[guid(subscription().id, variables('contributorRoleDefinitionId'), variables('managedIdentityId'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2019-10-01",
+      "name": "[variables('resourceGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "[variables('assetsDeploymentName')]",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "parameters": {
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "environment": {
+              "value": "[parameters('environment')]"
+          },
+          "managedIdentityName": {
+            "value": "[variables('managedIdentityName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "projectName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "storageName": "[concat('st', parameters('projectName'), 'deploy', parameters('environment'), take(uniqueString(subscription().id, parameters('projectName')), 2))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "name": "[parameters('managedIdentityName')]",
+              "apiVersion": "2018-11-30",
+              "location": "[parameters('location')]"
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2019-06-01",
+              "name": "[variables('storageName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard_RAGZRS"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "accessTier": "Hot",
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "Allow",
+                  "ipRules": []
+                }
+              }
+            },
+            {
+              "name": "[concat(variables('storageName'), '/default')]",
+              "type": "microsoft.storage/storageaccounts/blobServices",
+              "apiVersion": "2019-06-01",
+              "properties": {
+                "isVersioningEnabled": true
+              },
+              "dependsOn": [
+                "[concat('microsoft.storage/storageaccounts/', variables('storageName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(parameters('managedIdentityName')).principalId]"
+            }
+          }
+        }
+      }
+    },
+    // This role assignment is done at subscription level, therefore this resource needs to be a child of a subscription-level
+    // ARM template. Also, we need to use `principalType: ServicePrincipal` to avoid replication errors. (see 
+    // https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-template#new-service-principal).
+    // Finally, fetch the managed identity principal ID from the deployment outputs to ensure that the resource group is
+    // created properly (see https://stackoverflow.com/a/63493023/3002623).
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "name": "[variables('bootstrapRoleAssignmentId')]",
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[variables('assetsDeploymentName')]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
+        "principalId": "[reference(variables('assetsDeploymentName')).outputs.managedIdentityPrincipalId.value]",
+        "principalType": "ServicePrincipal",
+        "scope": "[subscription().id]"
+      }
+    }
+  ]
+}
