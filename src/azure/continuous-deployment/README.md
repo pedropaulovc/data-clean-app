@@ -8,4 +8,4 @@ Responsibilities
 
 Deployment steps
 ================
-1. Run `az deployment group create --resource-group <resource group> --template-file BootstrapResourceGroup.json --parameters BootstrapResourceGroup.parameters.json --location <region>`
+1. Run `az deployment group create --resource-group <resource group> --template-file DataCleanContinuousDeployment.json --parameters DataCleanContinuousDeployment.parameters.json`
