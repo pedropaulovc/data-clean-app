@@ -1,4 +1,4 @@
-There are 4 bootstrap templates to be applied, each one is responsible for one scope level of the Azure resource
+There are 3 bootstrap templates to be applied, each one is responsible for one scope level of the Azure resource
 hierarchy. The deployment templates are meant to be deployed in the sequence listed below. At each step, make
 sure to review the parameters before triggering the deployment.
 
@@ -52,16 +52,5 @@ Responsibilities
 Deployment steps
 ----------------
 1. Run `az deployment sub create --template-file BootstrapSubscription.json --parameters BootstrapSubscription.parameters.json --location <region>`
-
-Resource group level
-====================
-`DataCleanResourceGroup.json` is the resource group-level deployment template.
-
-Responsibilities
-----------------
-* Creates the storage account to hold official releases before safe rollout via ADM
-* Creates the ADM service topology
-
-Deployment steps
-----------------
-1. Run `az deployment group create --resource-group <resource group> --template-file BootstrapResourceGroup.json --parameters BootstrapResourceGroup.parameters.json --location <region>`
+2. Run `az ad sp create-for-rbac --name "sp-dataclean-deploy-<environment - dev,ppe,prd>" --role Contributor --scopes /subscriptions/<subscription>/resourceGroups/<resource group> --sdk-auth true`
+3. Store the output of the previous command as the value of a GitHub secret, for example `AZURE_CREDENTIALS_<ENVIRONMENT - DEV,PPE,PRD>`.
