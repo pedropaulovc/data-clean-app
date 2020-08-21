@@ -31,17 +31,25 @@
   },
   "variables": {
     "assetsDeploymentName": "deployment-assets-except-role-assignment",
-    "resourceGroupName": "[concat('rg-', parameters('projectName'), '-deploy-', parameters('environment'))]",
+    "assetsResourceGroupName": "[concat('rg-', parameters('projectName'), '-deploy-', parameters('environment'))]",
+    "runtimeResourceGroupName": "[concat('rg-', parameters('projectName'), '-', parameters('location') ,'-', parameters('environment'))]",
     "managedIdentityName": "[concat('msi-', parameters('projectName'), '-deploy-', parameters('environment'))]",
     "contributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-    "managedIdentityId": "[concat(subscription().id, '/resourceGroups/', variables('resourceGroupName'), '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', variables('managedIdentityName'))]",
+    "managedIdentityId": "[concat(subscription().id, '/resourceGroups/', variables('assetsResourceGroupName'), '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', variables('managedIdentityName'))]",
     "bootstrapRoleAssignmentId": "[guid(subscription().id, variables('contributorRoleDefinitionId'), variables('managedIdentityId'))]"
   },
   "resources": [
     {
       "type": "Microsoft.Resources/resourceGroups",
       "apiVersion": "2019-10-01",
-      "name": "[variables('resourceGroupName')]",
+      "name": "[variables('assetsResourceGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2019-10-01",
+      "name": "[variables('runtimeResourceGroupName')]",
       "location": "[parameters('location')]",
       "properties": {}
     },
@@ -49,9 +57,9 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
       "name": "[variables('assetsDeploymentName')]",
-      "resourceGroup": "[variables('resourceGroupName')]",
+      "resourceGroup": "[variables('assetsResourceGroupName')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+        "[resourceId('Microsoft.Resources/resourceGroups', variables('assetsResourceGroupName'))]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -105,7 +113,7 @@
       "apiVersion": "2020-04-01-preview",
       "name": "[variables('bootstrapRoleAssignmentId')]",
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('assetsResourceGroupName'))]",
         "[variables('assetsDeploymentName')]"
       ],
       "properties": {
