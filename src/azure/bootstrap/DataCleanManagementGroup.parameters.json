@@ -1,0 +1,12 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "managementGroupName": {
+            "value": "mg-dataclean"
+        },
+        "childSubscription": {
+            "value": "e73dc189-6641-4f1a-bc8a-788ea80fdaa0"
+        }
+    }
+}
