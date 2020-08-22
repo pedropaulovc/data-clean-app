@@ -8,6 +8,8 @@ param (
     [string] $Environment
 )
 
+$ErrorActionPreference = 'Stop'
+
 $templateName = "DataCleanContinuousDeployment";
 $resourceGroupName = $DeploymentResourceGroupPrefix + '-' + $Environment;
 $deploymentName = $templateName + '-' + $Environment + "-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmm');
