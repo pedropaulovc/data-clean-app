@@ -10,8 +10,8 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-Install-Module powershell-yaml -Confirm
-Import-Module powershell-yaml
+Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
+Install-Module powershell-yaml
 
 $templateName = "DataCleanContinuousDeployment";
 $resourceGroupName = $DeploymentResourceGroupPrefix + '-' + $Environment;
