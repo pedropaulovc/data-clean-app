@@ -13,4 +13,4 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
 
-    - run: pwsh -File ./src/azure/continuous-deployment/Set-Deployment.ps1 -environment dev
+    - run: pwsh -File ./src/azure/continuous-deployment/Set-Deployment.ps1 -Environment dev
