@@ -1,0 +1,321 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "type": "string",
+      "maxLength": 11,
+      "metadata": {
+        "description": "The name of the project"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "maxLength": 3,
+      "metadata": {
+        "description": "The environment type (dev, uat, ppe, prd)"
+      },
+      "allowedValues": [
+        "dev",
+        "uat",
+        "ppe",
+        "prd"
+      ]
+    }
+  },
+  "variables": {
+    "suffix": "[concat(parameters('projectName'), '-', resourceGroup().location,'-', parameters('environment'))]",
+    "suffixNoDashes": "[concat(parameters('projectName'), resourceGroup().location, parameters('environment'))]",
+    
+    "acrName": "[concat('acr', variables('suffixNoDashes'))]",
+    "aksClusterName": "[concat('aks-', variables('suffix'))]",
+    "dnsPrefix": "[concat('dns-', variables('suffix'))]",
+    "logInsightsWorkspaceName": "[concat('log-', variables('suffix'))]",
+    "resourceGroupName": "[concat('rg-', variables('suffix'))]",
+    "vNetName": "[concat('vnet-', variables('suffix'))]",
+    "vNetDiagnosticsName": "[concat('diag-vnet-to-log-', variables('suffix'))]",
+    
+    "aksClusterRoleAssignmentId": "[guid(variables('aksClusterName'), variables('acrName'))]",
+    "acrPullRoleId": "[subscriptionResourceId(subscription().subscriptionId, 'Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+    
+    "logInsightsWorkspaceId": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.OperationalInsights/workspaces', variables('logInsightsWorkspaceName'))]",
+    "vnetSubnetID": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', variables('vNetName'), 'default')]"
+  },
+  "resources": [
+    // // AKS Cluster; depends on log insights workspace + VNet
+    // {
+    //   "apiVersion": "2020-03-01",
+    //   "dependsOn": [
+    //     "[variables('logInsightsWorkspaceName')]",
+    //     "[variables('vNetName')]"
+    //   ],
+    //   "type": "Microsoft.ContainerService/managedClusters",
+    //   "location": "[resourceGroup().location]",
+    //   "name": "[variables('aksClusterName')]",
+    //   "properties": {
+    //     "kubernetesVersion": "1.7.7",
+    //     "enableRBAC": true,
+    //     "dnsPrefix": "[variables('dnsPrefix')]",
+    //     "agentPoolProfiles": [
+    //       {
+    //         "name": "agentpool",
+    //          // Disk size (in GiB) to provision for each of the agent pool nodes. This value ranges from 0 to 1023.
+    //          // Specifying 0 will apply the default disk size for that agentVMSize.
+    //         "osDiskSizeGB": 0,
+    //         "count": 1,
+    //         "vmSize": "Standard_B2s",
+    //         "osType": "Linux",
+    //         "storageProfile": "ManagedDisks",
+    //         "type": "VirtualMachineScaleSets",
+    //         "mode": "System",
+    //         "vnetSubnetID": "[variables('vnetSubnetID')]"
+    //       }
+    //     ],
+    //     "networkProfile": {
+    //       "loadBalancerSku": "standard",
+    //       "networkPlugin": "azure",
+    //       "serviceCidr": "10.0.0.0/16",
+    //       "dnsServiceIP": "10.0.0.10",
+    //       "dockerBridgeCidr": "172.17.0.1/16"
+    //     },
+    //     "apiServerAccessProfile": {
+    //       "enablePrivateCluster": true
+    //     },
+    //     "addonProfiles": {
+    //       "httpApplicationRouting": {
+    //         "enabled": false
+    //       },
+    //       "omsagent": {
+    //         "enabled": true,
+    //         "config": {
+    //           "logAnalyticsWorkspaceResourceID": "[variables('logInsightsWorkspaceId')]"
+    //         }
+    //       }
+    //     }
+    //   },
+    //   "tags": {},
+    //   "identity": {
+    //     "type": "SystemAssigned"
+    //   }
+    // },
+    // // Log insights AKS solution; depends on log insights workspace; nested
+    // {
+    //   "type": "Microsoft.Resources/deployments",
+    //   "name": "SolutionDeployment-20200821124140",
+    //   "apiVersion": "2017-05-10",
+    //   "resourceGroup": "[variables('resourceGroupName')]",
+    //   "subscriptionId": "[subscription().subscriptionId]",
+    //   "properties": {
+    //     "mode": "Incremental",
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "parameters": {},
+    //       "variables": {},
+    //       "resources": [
+    //         {
+    //           "apiVersion": "2015-11-01-preview",
+    //           "type": "Microsoft.OperationsManagement/solutions",
+    //           "location": "[resourceGroup().location]",
+    //           "name": "[concat('ContainerInsights', '(', split(variables('logInsightsWorkspaceId'),'/')[8], ')')]",
+    //           "properties": {
+    //             "workspaceResourceId": "[variables('logInsightsWorkspaceId')]"
+    //           },
+    //           "plan": {
+    //             "name": "[concat('ContainerInsights', '(', split(variables('logInsightsWorkspaceId'),'/')[8], ')')]",
+    //             "product": "[concat('OMSGallery/', 'ContainerInsights')]",
+    //             "promotionCode": "",
+    //             "publisher": "Microsoft"
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   },
+    //   "dependsOn": [
+    //     "[concat('Microsoft.Resources/deployments/', 'WorkspaceDeployment-20200821124140')]"
+    //   ]
+    // },
+    // // AKS PullAcr role assignment; depends on AKS cluster + ACR; nested
+    // {
+    //   "name": "ConnectAKStoACR-ef7f36eb-a70a-4957-a795-c61cbf6f9045",
+    //   "type": "Microsoft.Resources/deployments",
+    //   "apiVersion": "2017-05-10",
+    //   "resourceGroup": "[variables('resourceGroupName')]",
+    //   "dependsOn": [
+    //     "[concat('Microsoft.ContainerService/managedClusters/', variables('aksClusterName'))]",
+    //     "[variables('acrname')]"
+    //   ],
+    //   "properties": {
+    //     "mode": "Incremental",
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "resources": [
+    //         {
+    //           "apiVersion": "2018-09-01-preview",
+    //           "type": "Microsoft.ContainerRegistry/registries/providers/roleAssignments",
+    //           "name": "[concat(variables('acrName'), '/Microsoft.Authorization/', variables('aksClusterRoleAssignmentId'))]",
+    //           "properties": {
+    //             "principalId": "[reference(variables('aksClusterName'), '2020-03-01').identityProfile.kubeletidentity.objectId]",
+    //             "principalType": "ServicePrincipal",
+    //             "roleDefinitionId": "[variables('acrPullRoleId')]",
+    //             "scope": "[resourceId(variables('resourceGroupName'),'Microsoft.ContainerRegistry/registries/', variables('acrName'))]"
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   }
+    // },
+    // // AKS Monitoring Metrics Publisher role assignment; depends on AKS cluster; nested
+    // {
+    //   "type": "Microsoft.Resources/deployments",
+    //   "name": "ClusterMonitoringMetricPulisherRoleAssignmentDepl-20200821124140",
+    //   "apiVersion": "2017-05-10",
+    //   "subscriptionId": "[subscription().subscriptionId]",
+    //   "resourceGroup": "[resourceGroup().name]",
+    //   "properties": {
+    //     "mode": "Incremental",
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "parameters": {},
+    //       "variables": {},
+    //       "resources": [
+    //         {
+    //           "type": "Microsoft.ContainerService/managedClusters/providers/roleAssignments",
+    //           "apiVersion": "2018-01-01-preview",
+    //           "name": "aks-dataclean-westus2-dev/Microsoft.Authorization/59ab5357-8b4f-4526-85ea-25d0bff07262",
+    //           "properties": {
+    //             "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '3913510d-42f4-4e42-8a64-420c390055eb')]",
+    //             "principalId": "[reference(variables('aksClusterName')).addonProfiles.omsagent.identity.objectId]",
+    //             "scope": "/subscriptions/e73dc189-6641-4f1a-bc8a-788ea80fdaa0/resourceGroups/rg-dataclean-westus2-dev/providers/Microsoft.ContainerService/managedClusters/aks-dataclean-westus2-dev"
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   },
+    //   "dependsOn": [
+    //     "/subscriptions/e73dc189-6641-4f1a-bc8a-788ea80fdaa0/resourceGroups/rg-dataclean-westus2-dev/providers/Microsoft.ContainerService/managedClusters/aks-dataclean-westus2-dev"
+    //   ]
+    // },
+    // // AKS Network Contributor role assignment; depends on VNet; nested
+    // {
+    //   "type": "Microsoft.Resources/deployments",
+    //   "name": "ClusterSubnetRoleAssignmentDeployment-20200821124140",
+    //   "apiVersion": "2017-05-10",
+    //   "subscriptionId": "[subscription().subscriptionId]",
+    //   "resourceGroup": "[resourceGroup().name]",
+    //   "properties": {
+    //     "mode": "Incremental",
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "parameters": {},
+    //       "variables": {},
+    //       "resources": [
+    //         {
+    //           "type": "Microsoft.Network/virtualNetworks/subnets/providers/roleAssignments",
+    //           "apiVersion": "2017-05-01",
+    //           "name": "vnet-dataclean-westus2-dev/default/Microsoft.Authorization/a33295bd-ed87-49a5-8ed2-aafc4a9d923c",
+    //           "properties": {
+    //             "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '4d97b98b-1d4f-4787-a291-c67834d212e7')]",
+    //             "principalId": "[reference(variables('aksClusterName')).identityProfile.kubeletidentity.objectId]",
+    //             "scope": "/subscriptions/e73dc189-6641-4f1a-bc8a-788ea80fdaa0/resourceGroups/rg-dataclean-westus2-dev/providers/Microsoft.Network/virtualNetworks/vnet-dataclean-westus2-dev/subnets/default"
+    //           }
+    //         }
+    //       ]
+    //     }
+    //   },
+    //   "dependsOn": [
+    //     "Microsoft.Network/virtualNetworks/vnet-dataclean-westus2-dev"
+    //   ]
+    // },
+    // ACR
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('acrName')]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "adminUserEnabled": false
+      }
+    },
+    // VNet diagnostic settings; depends on VNet and Log Insights workspace
+    {
+      "type": "Microsoft.Network/virtualNetworks/providers/diagnosticSettings",
+      "apiVersion": "2017-05-01-preview",
+      "name": "[concat(variables('vNetName'),'/Microsoft.Insights/', variables('vNetDiagnosticsName'))]",
+      "dependsOn": [
+        "[variables('vNetName')]",
+        "[variables('logInsightsWorkspaceName')]"
+      ],
+      "properties": {
+        "workspaceId": "[variables('logInsightsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "VMProtectionAlerts",
+            "enabled": true,
+            "retentionPolicy": {
+              "days": 0,
+              "enabled": false
+            }
+          }
+        ],
+        "metrics": [
+          {
+            "enabled": true,
+            "retentionPolicy": {
+                "days": 0,
+                "enabled": false
+            },
+            "category": "AllMetrics"
+          }
+        ]
+      }
+    },
+    // VNet
+    {
+      "apiVersion": "2019-09-01",
+      "name": "[variables('vNetName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "subnets": [
+          {
+            "name": "default",
+            "properties": {
+              "addressPrefix": "10.240.0.0/16"
+            }
+          }
+        ],
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/8"
+          ]
+        }
+      },
+      "tags": {}
+    },
+    // Log Insights workspace
+    {
+      "apiVersion": "2015-11-01-preview",
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "location": "[resourceGroup().location]",
+      "name": "[variables('logInsightsWorkspaceName')]",
+      "properties": {
+        "sku": {
+          "name": "standalone"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    // "controlPlaneFQDN": {
+    //   "type": "string",
+    //   "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters/', variables('aksClusterName'))).privateFQDN]"
+    // }
+  }
+}
