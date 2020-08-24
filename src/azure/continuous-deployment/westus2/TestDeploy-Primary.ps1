@@ -1,7 +1,8 @@
 #!/usr/bin/env pwsh
 $ErrorActionPreference = 'Stop'
 
-$projectName = "dc" + (Get-Date).ToUniversalTime().ToString('HHmm');
+# $projectName = "dc" + (Get-Date).ToUniversalTime().ToString('HHmm');
+$projectName = "dc1655";
 $resourceGroup = "rg-" + $projectName + "-westus2-dev";
 
 az group create --resource-group $resourceGroup --location westus2 | ConvertFrom-Json | ConvertTo-Yaml
