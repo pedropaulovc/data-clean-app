@@ -245,10 +245,5 @@
       }
     }
   ],
-  "outputs": {
-    // "controlPlaneFQDN": {
-    //   "type": "string",
-    //   "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters/', variables('aksClusterName'))).privateFQDN]"
-    // }
-  }
+  "outputs": {}
 }
