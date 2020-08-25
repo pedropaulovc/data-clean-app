@@ -15,12 +15,12 @@ Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
 Install-Module powershell-yaml
 
 # TODO: AKS admin group name should be unique per (region, subscription, resource group, project, environment) #6
-$aksAdminSecurityGroupName = 'sg-admin-aks-' + $ProjectName + '-' + $Region + '-' + $Environment;
+$aksAdminSecurityGroupName = "sg-admin-aks-$ProjectName-$Region-$Environment";
 $aksAdminSecurityGroupId = az ad group create --display-name $aksAdminSecurityGroupName --mail-nickname $aksAdminSecurityGroupName --query objectId --output tsv
 
 $templateName = "DataCleanRuntime";
-$resourceGroupName = 'rg-' + $ProjectName + '-' + $Region + '-' + $Environment;
-$deploymentName = $templateName + "-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmm');
+$resourceGroupName = "rg-$ProjectName-$Region-$Environment";
+$deploymentName = "$templateName-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmm');
 $templateFile = Join-Path $PSScriptRoot "$templateName.json";
 $templateParameters = Join-Path $PSScriptRoot "$templateName.parameters.json";
 
