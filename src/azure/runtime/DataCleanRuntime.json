@@ -21,6 +21,14 @@
         "ppe",
         "prd"
       ]
+    },
+
+    "aksAdminSecurityGroupId": {
+      "type": "string",
+      "minLength": 36,
+      "metadata": {
+        "description": "A security group AAD object ID to serve as the admin group for the AKS cluster"
+      }
     }
   },
   "variables": {
@@ -83,19 +91,15 @@
           "dockerBridgeCidr": "172.17.0.1/16"
         },
         "apiServerAccessProfile": {
-          "enablePrivateCluster": true
+          "enablePrivateCluster": false
         },
-        // "aadProfile": {
-        //   "managed": "boolean",
-        //   "enableAzureRBAC": "boolean",
-        //   "adminGroupObjectIDs": [
-        //     "string"
-        //   ],
-        //   "clientAppID": "string",
-        //   "serverAppID": "string",
-        //   "serverAppSecret": "string",
-        //   "tenantID": "string"
-        // },
+        "aadProfile": {
+          "adminGroupObjectIds": [
+            "[parameters('aksAdminSecurityGroupId')]"
+          ],
+          "managed": true,
+          "tenantId": "[subscription().tenantId]"
+        },
         "addonProfiles": {
           "httpApplicationRouting": {
             "enabled": false
@@ -144,7 +148,7 @@
         "scope": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
       }
     },
-    // AKS Network Contributor role assignment; depends on VNet; nested
+    // AKS Network Contributor role assignment; depends on VNet
     {
       "type": "Microsoft.Network/virtualNetworks/subnets/providers/roleAssignments",
       "apiVersion": "2017-05-01",
