@@ -4,6 +4,9 @@
     "parameters": {
         "projectName": {
             "value": "dataclean"
+        },
+        "childSubscriptionId": {
+            "value": "e73dc189-6641-4f1a-bc8a-788ea80fdaa0"
         }
     }
 }

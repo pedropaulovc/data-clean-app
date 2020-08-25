@@ -7,32 +7,11 @@
       "metadata": {
         "description": "The management group to be configured"
       }
-    },
-    "childSubscription": {
-      "type": "string",
-      "metadata": {
-        "description": "The list of child subscription IDs of the management group"
-      }
     }
   },
   "functions": [],
   "variables": {},
   "resources": [
-    {
-      "name": "[parameters('managementGroupName')]",
-      "type": "Microsoft.Management/managementGroups",
-      "apiVersion": "2019-11-01",
-      "resources": [
-        {
-          "name": "[parameters('childSubscription')]",
-          "type": "subscriptions",
-          "apiVersion": "2020-05-01",
-          "dependsOn": [
-            "[parameters('managementGroupName')]"
-          ]
-        }
-      ]
-    }
   ],
   "outputs": {}
 }
