@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 
 $servicePrincipalJson = az ad sp create-for-rbac `
     --name "sp-$ProjectName-github-$Environment" `
-    --role Contributor `
+    --role Owner `
     --scopes "/subscriptions/$Subscription/resourceGroups/rg-$ProjectName-deploy-$Environment" "/subscriptions/$Subscription/resourceGroups/rg-$ProjectName-$Region-$Environment" `
     --sdk-auth true
 
