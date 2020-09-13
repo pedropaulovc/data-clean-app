@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openrefine
+spec:
+  selector:
+    matchLabels:
+      octopusexport: OctopusExport
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: octopusservice
+  podManagementPolicy: OrderedReady
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        labels: {}
+        annotations: {}
+        name: pvc-openrefine
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          limits:
+            storage: 10Gi
+          requests:
+            storage: 5Gi
+  template:
+    metadata:
+      labels:
+        octopusexport: OctopusExport
+    spec:
+      volumes:
+        - name: openrefine-data
+          persistentVolumeClaim:
+            claimName: pvc-openrefine
+      containers:
+        - name: openrefine
+          image: 'felixlohmeier/openrefine:3.4'
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3333
+              protocol: TCP
+          volumeMounts:
+            - name: openrefine-data
+              mountPath: /data
+              subPath: ''

@@ -1,0 +1,14 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  labels: {}
+  annotations: {}
+  name: pvc-openrefine
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    limits:
+      storage: 10Gi
+    requests:
+      storage: 5Gi
