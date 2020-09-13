@@ -5,11 +5,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      octopusexport: OctopusExport
+      app: openrefine
   replicas: 1
   updateStrategy:
     type: RollingUpdate
-  serviceName: octopusservice
+  serviceName: svc-openrefine
   podManagementPolicy: OrderedReady
   volumeClaimTemplates:
     - kind: PersistentVolumeClaim
@@ -29,7 +29,7 @@ spec:
   template:
     metadata:
       labels:
-        octopusexport: OctopusExport
+        app: openrefine
     spec:
       volumes:
         - name: openrefine-data
