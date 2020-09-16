@@ -9,6 +9,12 @@
         "description": "The name of the project"
       }
     },
+    "domainName": {
+      "type": "string",
+      "metadata": {
+        "description": "The root domain for the project"
+      }
+    },
     "environment": {
       "type": "string",
       "maxLength": 3,
@@ -38,11 +44,12 @@
     "acrName": "[concat('acr', variables('suffixNoDashes'))]",
     "aksClusterName": "[concat('aks-', variables('suffix'))]",
     "aksNodeResourceGroupName": "[concat('rg-', variables('aksClusterName'))]",
-    "dnsPrefix": "[concat('dns-', variables('suffix'))]",
+    "aksApiServerDnsPrefix": "[concat('dns-', variables('suffix'))]",
     "logInsightsWorkspaceName": "[concat('log-', variables('suffix'))]",
     "vNetName": "[concat('vnet-', variables('suffix'))]",
     "vNetDiagnosticsName": "[concat('diag-vnet-to-log-', variables('suffix'))]",
-    
+    "subDomainName": "[concat(parameters('environment'), '.', parameters('projectName'), '.', parameters('domainName'))]",
+
     "acrPullRoleId": "[subscriptionResourceId(subscription().subscriptionId, 'Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
     "networkContributorRoleId": "[subscriptionResourceId(subscription().subscriptionId, 'Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7')]",
     "monitoringMetricsPublisherRoleId": "[subscriptionResourceId(subscription().subscriptionId, 'Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')]",
@@ -69,7 +76,7 @@
         "kubernetesVersion": "1.18.6",
         "enableRBAC":  true,
         "nodeResourceGroup": "[variables('aksNodeResourceGroupName')]",
-        "dnsPrefix": "[variables('dnsPrefix')]",
+        "dnsPrefix": "[variables('aksApiServerDnsPrefix')]",
         "agentPoolProfiles": [
           {
             "name": "agentpool",
@@ -175,6 +182,65 @@
       "properties": {
         "adminUserEnabled": false
       }
+    },
+    // DNS zone
+    {
+        "type": "Microsoft.Network/dnszones",
+        "apiVersion": "2018-05-01",
+        "name": "[variables('subDomainName')]",
+        "location": "global",
+        "properties": {
+            "zoneType": "Public"
+        }
+    },
+    // DNS NS record
+    {
+        "type": "Microsoft.Network/dnszones/NS",
+        "apiVersion": "2018-05-01",
+        "name": "[concat(variables('subDomainName'), '/@')]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/dnszones', variables('subDomainName'))]"
+        ],
+        "properties": {
+            "TTL": 172800,
+            "NSRecords": [
+                {
+                    "nsdname": "ns1-08.azure-dns.com."
+                },
+                {
+                    "nsdname": "ns2-08.azure-dns.net."
+                },
+                {
+                    "nsdname": "ns3-08.azure-dns.org."
+                },
+                {
+                    "nsdname": "ns4-08.azure-dns.info."
+                }
+            ],
+            "targetResource": {}
+        }
+    },
+    // DNS SOA record
+    {
+        "type": "Microsoft.Network/dnszones/SOA",
+        "apiVersion": "2018-05-01",
+        "name": "[concat(variables('subDomainName'), '/@')]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/dnszones', variables('subDomainName'))]"
+        ],
+        "properties": {
+            "TTL": 3600,
+            "SOARecord": {
+                "email": "azuredns-hostmaster.microsoft.com",
+                "expireTime": 2419200,
+                "host": "ns1-08.azure-dns.com.",
+                "minimumTTL": 300,
+                "refreshTime": 3600,
+                "retryTime": 300,
+                "serialNumber": 1
+            },
+            "targetResource": {}
+        }
     },
     // VNet diagnostic settings; depends on VNet and Log Insights workspace
     {
